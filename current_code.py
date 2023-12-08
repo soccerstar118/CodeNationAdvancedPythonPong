@@ -32,7 +32,7 @@ def game_loop(score_required_to_win):
     paddle_2 = Paddle(x=width - 50, y=height / 2, paddle_width=5, paddle_height=60, speed=400, up_key=pygame.K_UP,
                       down_key=pygame.K_DOWN, color=(100, 255, 100))
 
-    ball = Ball(x=width / 2, y=height / 2, radius=10, speed_x=400, color=(0, 255, 255))
+    ball = Ball(x=width / 2, y=height / 2, radius=10, speed_x=200, color=(0, 255, 255))
     while True:
         quit_program_if_correct_key_pressed_or_screen_exit()
 
@@ -45,9 +45,9 @@ def game_loop(score_required_to_win):
         ball.update(1 / fps, paddle_left=paddle_1, paddle_right=paddle_2)
 
         if paddle_1.score >= score_required_to_win:
-            ended_game_loop(1)
+            ended_game_loop(score_required_to_win, 1)
         if paddle_2.score >= score_required_to_win:
-            ended_game_loop(2)
+            ended_game_loop(score_required_to_win, 2)
 
         pygame.display.update()
         clock.tick(fps)
@@ -75,12 +75,12 @@ def draw_background_game_loop():
         pygame.draw.rect(screen, gray_color, [width / 2 - width_dash / 2, y, width_dash, length_gray_dash])
 
 
-def ended_game_loop(score_required_to_win):
+def ended_game_loop(score_required_to_win, num_player_won):
     while True:
         quit_program_if_correct_key_pressed_or_screen_exit()
         screen.fill(background_color)
 
-        draw_text_centered("Player 1 wins! ", width / 2, height * 1 / 4, "white", display_rect=True, rect_color="blue",
+        draw_text_centered(f"Player {num_player_won} wins! ", width / 2, height * 1 / 4, "white", display_rect=True, rect_color="blue",
                            rect_border_width=5, rect_dx=50, rect_dy=50)
 
         draw_text_centered(" Press [Space] to start", width / 2, height * 2 / 4, "white", display_rect=True,
@@ -182,23 +182,74 @@ class Paddle:
         self.y += incr_amount * dt
 
     def draw(self):
-        pygame.draw.rect(screen, self.color, [self.get_x_low(), self.get_y_low(), self.width, self.height],
+        pygame.draw.rect(screen, self.color, [self.x_low, self.y_low, self.width, self.height],
                          self.border_width)
 
     # Later on, we will learn the Pythonic way to do it, but for now we will use more Java-style ones.
 
-    def get_x_low(self):
+    @property
+    def x_low(self):
         return self.x - self.width / 2
-
-    def get_x_high(self):
+        
+    @x_low.setter
+    def x_low(self, num):
+        self.x = self.width/2 + num
+    
+    @property
+    def x_high(self):
         return self.x + self.width / 2
+        
+    @x_high.setter
+    def x_high(self, num):
+        self.x = -self.width/2 + num
 
-    def get_y_low(self):
+    @property
+    def y_low(self):
         return self.y - self.height / 2
-
-    def get_y_high(self):
+        
+    @y_low.setter 
+    def y_low(self, num):
+        self.y = self.height/2 + num
+    
+    @property
+    def y_high(self):
         return self.y + self.height / 2
 
+    @y_high.setter 
+    def y_high(self, num):
+        self.y = -self.height/2 + num
+        
+    @property 
+    def left(self):
+        return self.x_low
+    
+    @left.setter
+    def left(self, num):
+        self.x_low = num 
+        
+    @property
+    def right(self):
+        return self.x_high 
+    
+    @right.setter
+    def right(self, num):
+        self.x_high = num 
+        
+    @property
+    def top(self):
+        return self.y_low 
+    
+    @top.setter
+    def top(self, num):
+        self.y_low = num 
+
+    @property
+    def bottom(self):
+        return self.y_high 
+    
+    @bottom.setter
+    def bottom(self, num):
+        self.y_high = num 
 
 class Ball:
     def __init__(self, *, x, y, radius, speed_x, color=(255, 255, 255), border_width=0):
@@ -217,8 +268,7 @@ class Ball:
         self.border_width = border_width
 
     def update(self, dt, *, paddle_left, paddle_right):
-        self.account_for_paddle_collision(paddle_left)
-        self.account_for_paddle_collision(paddle_right)
+        self.account_for_paddle_collision(paddle_left, paddle_right)
 
         self.account_for_vertical_screen_collision()
 
@@ -234,35 +284,37 @@ class Ball:
     def draw(self):
         pygame.draw.circle(screen, self.color, (self.x, self.y), self.radius, self.border_width)
 
-    def account_for_paddle_collision(self, paddle: Paddle) -> None:
+    def account_for_paddle_collision(self, paddle_left: Paddle, paddle_right: Paddle) -> None:
         """
         Assumes the ball is relatively slow (i.e. won't clip through)
         Also does not use i-frames (i.e. collision could occur multiple times for a collision)
         Simply negates ball
         """
 
-        if not self.does_collide(paddle):
-            return
-
-        self.vx = -self.vx
+        if self.does_collide(paddle_left):
+            self.left = paddle_left.right
+            self.vx = abs(self.vx)
+        if self.does_collide(paddle_right):
+            self.right = paddle_right.left
+            self.vx = -abs(self.vx)
 
     def account_for_vertical_screen_collision(self):
-        if self.get_y_low() < 0:
-            self.set_y_low(0)
+        if self.y_low < 0:
+            self.y_low = 0
             self.vy = abs(self.vy)
-        if self.get_y_high() > height:
-            self.set_y_high(height)
+        if self.y_high > height:
+            self.y_high = height
             self.vy = -abs(self.vy)
 
     def account_score_increases(self, left_paddle: Paddle, right_paddle: Paddle):
-        if self.get_x_low() < 0:
+        if self.x_low < 0:
             right_paddle.score += 1
-            self.reset_ball()
-        if self.get_x_high() > width:
+            self.reset()
+        if self.x_high > width:
             left_paddle.score += 1
-            self.reset_ball()
+            self.reset()
 
-    def reset_ball(self):
+    def reset(self):
         """
         Flips ball direction, resets position of ball.
         """
@@ -275,44 +327,84 @@ class Ball:
 
     def does_collide(self, paddle):
         for point in self.get_points():
-            if paddle.get_x_low() < point[0] < paddle.get_x_high() and paddle.get_y_low() < point[1] < \
-                    paddle.get_y_high():
+            if paddle.x_low < point[0] < paddle.x_high and paddle.y_low < point[1] < \
+                    paddle.y_high:
                 return True
         return False
 
     def get_points(self):
         # This does make things scuffed, as circle is essentially treated as a square
 
-        return [(self.get_x_low(), self.get_y_low()),
-                (self.get_x_low(), self.get_y_high()),
-                (self.get_x_high(), self.get_y_high()),
-                (self.get_x_high(), self.get_y_low())]
+        return [(self.x_low, self.y_low),
+                (self.x_low, self.y_high),
+                (self.x_high, self.y_high),
+                (self.x_high, self.y_low)]
 
     # Later on, we will learn the Pythonic way to do it, but for now we will use more Java-style ones.
 
-    def get_x_low(self):
+    @property
+    def x_low(self):
         return self.x - self.radius
-
-    def get_x_high(self):
-        return self.x + self.radius
-
-    def get_y_low(self):
-        return self.y - self.radius
-
-    def get_y_high(self):
-        return self.y + self.radius
-
-    def set_x_low(self, num):
+        
+    @x_low.setter
+    def x_low(self, num):
         self.x = num + self.radius
 
-    def set_x_high(self, num):
+    @property
+    def x_high(self):
+        return self.x + self.radius
+        
+    @x_high.setter
+    def x_high(self, num):
         self.x = num - self.radius
 
-    def set_y_low(self, num):
+    @property
+    def y_low(self):
+        return self.y - self.radius
+
+    @y_low.setter
+    def y_low(self, num):
         self.y = num + self.radius
 
-    def set_y_high(self, num):
+    @property
+    def y_high(self):
+        return self.y + self.radius
+
+    @y_high.setter
+    def y_high(self, num):
         self.y = num - self.radius
+    
+    @property 
+    def left(self):
+        return self.x_low
+    
+    @left.setter
+    def left(self, num):
+        self.x_low = num 
+        
+    @property
+    def right(self):
+        return self.x_high 
+    
+    @right.setter
+    def right(self, num):
+        self.x_high = num 
+        
+    @property
+    def top(self):
+        return self.y_low 
+    
+    @top.setter
+    def top(self, num):
+        self.y_low = num 
 
-
+    @property
+    def bottom(self):
+        return self.y_high 
+    
+    @bottom.setter
+    def bottom(self, num):
+        self.y_high = num 
+    
+    
 menu_loop(5)
