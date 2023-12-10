@@ -451,6 +451,12 @@ class Color:
     """
     We can change this to be easier once we use inheritance.
     """
+    #the Particle class needs a method to check if alive (keep a variable equal to time alive, and decrease by dt upon update call) btw so add that
+    #the Particle class needs a method to check if alive (keep a variable equal to time alive, and decrease by dt upon update call) btw so add that
+    #the Particle class needs a method to check if alive (keep a variable equal to time alive, and decrease by dt upon update call) btw so add that
+    #the Particle class needs a method to check if alive (keep a variable equal to time alive, and decrease by dt upon update call) btw so add that
+    #the Particle class needs a method to check if alive (keep a variable equal to time alive, and decrease by dt upon update call) btw so add that
+    #the Particle class needs a method to check if alive (keep a variable equal to time alive, and decrease by dt upon update call) btw so add that
 
     def __init__(self, col):
         self.vec = pygame.Vector3(col)
@@ -475,11 +481,23 @@ class Color:
     def __mul__(self, num):
         return Color(self.vec * num)
 
-    def __add__(self, other):
-        return Color(self.vec + pygame.Vector3(other))
+    def __add__(self, col):
+        # Change to Color(col).vec to be better (not changing rn since dont have time to test it)
+        # Change to Color(col).vec to be better (not changing rn since dont have time to test it)
+        # Change to Color(col).vec to be better (not changing rn since dont have time to test it)
+        # Change to Color(col).vec to be better (not changing rn since dont have time to test it)
+        # Change to Color(col).vec to be better (not changing rn since dont have time to test it)
+        # Change to Color(col).vec to be better (not changing rn since dont have time to test it)
+        # Change to Color(col).vec to be better (not changing rn since dont have time to test it)
+        # Change to Color(col).vec to be better (not changing rn since dont have time to test it)
+        # Change to Color(col).vec to be better (not changing rn since dont have time to test it)
+        # Change to Color(col).vec to be better (not changing rn since dont have time to test it)
+        # Change to Color(col).vec to be better (not changing rn since dont have time to test it)
+        # Also for __sub__
+        return Color(self.vec + pygame.Vector3(col))
 
     def __sub__(self, col):
-        return Color(self.vec + pygame.Vector3(col))
+        return Color(self.vec - pygame.Vector3(col))
 
     def __truediv__(self, num):
         return self * (1 / num)
