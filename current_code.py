@@ -80,7 +80,8 @@ def ended_game_loop(score_required_to_win, num_player_won):
         quit_program_if_correct_key_pressed_or_screen_exit()
         screen.fill(background_color)
 
-        draw_text_centered(f"Player {num_player_won} wins! ", width / 2, height * 1 / 4, "white", display_rect=True, rect_color="blue",
+        draw_text_centered(f"Player {num_player_won} wins! ", width / 2, height * 1 / 4, "white", display_rect=True,
+                           rect_color="blue",
                            rect_border_width=5, rect_dx=50, rect_dy=50)
 
         draw_text_centered(" Press [Space] to start", width / 2, height * 2 / 4, "white", display_rect=True,
@@ -190,66 +191,67 @@ class Paddle:
     @property
     def x_low(self):
         return self.x - self.width / 2
-        
+
     @x_low.setter
     def x_low(self, num):
-        self.x = self.width/2 + num
-    
+        self.x = self.width / 2 + num
+
     @property
     def x_high(self):
         return self.x + self.width / 2
-        
+
     @x_high.setter
     def x_high(self, num):
-        self.x = -self.width/2 + num
+        self.x = -self.width / 2 + num
 
     @property
     def y_low(self):
         return self.y - self.height / 2
-        
-    @y_low.setter 
+
+    @y_low.setter
     def y_low(self, num):
-        self.y = self.height/2 + num
-    
+        self.y = self.height / 2 + num
+
     @property
     def y_high(self):
         return self.y + self.height / 2
 
-    @y_high.setter 
+    @y_high.setter
     def y_high(self, num):
-        self.y = -self.height/2 + num
-        
-    @property 
+        self.y = -self.height / 2 + num
+
+    @property
     def left(self):
         return self.x_low
-    
+
     @left.setter
     def left(self, num):
-        self.x_low = num 
-        
+        self.x_low = num
+
     @property
     def right(self):
-        return self.x_high 
-    
+        return self.x_high
+
     @right.setter
     def right(self, num):
-        self.x_high = num 
-        
+        self.x_high = num
+
     @property
     def top(self):
-        return self.y_low 
-    
+        return self.y_low
+
     @top.setter
     def top(self, num):
-        self.y_low = num 
+        self.y_low = num
 
     @property
     def bottom(self):
-        return self.y_high 
-    
+        return self.y_high
+
     @bottom.setter
     def bottom(self, num):
-        self.y_high = num 
+        self.y_high = num
+
 
 class Ball:
     def __init__(self, *, x, y, radius, speed_x, color=(255, 255, 255), border_width=0):
@@ -345,7 +347,7 @@ class Ball:
     @property
     def x_low(self):
         return self.x - self.radius
-        
+
     @x_low.setter
     def x_low(self, num):
         self.x = num + self.radius
@@ -353,7 +355,7 @@ class Ball:
     @property
     def x_high(self):
         return self.x + self.radius
-        
+
     @x_high.setter
     def x_high(self, num):
         self.x = num - self.radius
@@ -373,38 +375,150 @@ class Ball:
     @y_high.setter
     def y_high(self, num):
         self.y = num - self.radius
-    
-    @property 
+
+    @property
     def left(self):
         return self.x_low
-    
+
     @left.setter
     def left(self, num):
-        self.x_low = num 
-        
+        self.x_low = num
+
     @property
     def right(self):
-        return self.x_high 
-    
+        return self.x_high
+
     @right.setter
     def right(self, num):
-        self.x_high = num 
-        
+        self.x_high = num
+
     @property
     def top(self):
-        return self.y_low 
-    
+        return self.y_low
+
     @top.setter
     def top(self, num):
-        self.y_low = num 
+        self.y_low = num
 
     @property
     def bottom(self):
-        return self.y_high 
-    
+        return self.y_high
+
     @bottom.setter
     def bottom(self, num):
-        self.y_high = num 
-    
-    
-menu_loop(5)
+        self.y_high = num
+
+
+class BackgroundParticleSystem:
+    ...
+
+class Particle:
+    def __init__(self, *, lifetime, pos, vel, start_color, end_color, start_radius, end_radius=0, border_width=0):
+        self.pos = pygame.Vector2(pos)
+        self.vel = pygame.Vector2(vel)
+
+        self.color = Color(start_color)
+        self.color_change = (Color(end_color) - Color(start_color)) / lifetime
+
+        self.radius = start_radius
+        self.radius_change = (start_radius - end_radius) / lifetime
+
+        self.border_width = border_width
+
+    def update(self, dt):
+        self.move(dt)
+        self.shrink(dt)
+        self.fade(dt)
+        self.draw()
+
+    def move(self, dt):
+        self.pos += self.vel * dt
+
+    def draw(self):
+        pygame.draw.circle(screen, self.color, self.pos, self.radius, self.border_width)
+
+    def shrink(self, dt):
+        self.radius += self.radius_change * dt
+        if self.radius < 0:
+            self.radius = 0
+
+    def fade(self, dt):
+        self.color += self.color_change * dt
+        self.color.keep_within_bounds()
+
+
+class Color:
+    """
+    We can change this to be easier once we use inheritance.
+    """
+
+    def __init__(self, col):
+        self.vec = pygame.Vector3(col)
+
+    def keep_within_bounds(self):
+        for i in range(3):
+            if self[i] < 0:
+                self[i] = 0
+            if self[i] > 255:
+                self[i] = 255
+
+    def __iter__(self):
+        for i in range(3):
+            yield self[i]
+
+    def __getitem__(self, item):
+        return self.vec[item]
+
+    def __setitem__(self, key, value):
+        self.vec[key] = value
+
+    def __mul__(self, num):
+        return Color(self.vec * num)
+
+    def __add__(self, other):
+        return Color(self.vec + pygame.Vector3(other))
+
+    def __sub__(self, col):
+        return Color(self.vec + pygame.Vector3(col))
+
+    def __truediv__(self, num):
+        return self * (1 / num)
+
+    def __neg__(self):
+        return self * -1
+
+    def __len__(self):
+        return 3
+
+    def __str__(self):
+        return f'Color({self.r}, {self.g}, {self.b})'
+
+    @property
+    def r(self):
+        return self.vec[0]
+
+    @r.setter
+    def r(self, num):
+        self.vec[0] = num
+
+    @property
+    def g(self):
+        return self.vec[1]
+
+    @g.setter
+    def g(self, num):
+        self.vec[1] = num
+
+    @property
+    def b(self):
+        return self.vec[2]
+
+    @b.setter
+    def b(self, num):
+        self.vec[2] = num
+
+# menu_loop(5)
+#
+# x = Color(5, 5, 5)
+# y = Color(4, 4, 4)
+# print(- y / 5)
