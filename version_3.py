@@ -37,7 +37,6 @@ Later on, we will move to a class based menu system. For now we opt for function
 ------------------------------------------------------------
 ------------------------------------------------------------
 '''
-#need to : add trail params into ball class, give it its own particle system
 
 def game_loop(score_required_to_win):
     paddle_1 = Paddle(x=50, y=height / 2, paddle_width=5, paddle_height=60, speed=400, up_key=pygame.K_w,
