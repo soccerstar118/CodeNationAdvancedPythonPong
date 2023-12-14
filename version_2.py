@@ -25,7 +25,7 @@ Later on, we will move to a class based menu system. For now we opt for function
 ------------------------------------------------------------
 ------------------------------------------------------------
 '''
-
+#need to : add trail params into ball class, give it its own particle system
 
 def game_loop(score_required_to_win):
     paddle_1 = Paddle(x=50, y=height / 2, paddle_width=5, paddle_height=60, speed=400, up_key=pygame.K_w,
@@ -33,28 +33,29 @@ def game_loop(score_required_to_win):
     paddle_2 = Paddle(x=width - 50, y=height / 2, paddle_width=5, paddle_height=60, speed=400, up_key=pygame.K_UP,
                       down_key=pygame.K_DOWN, color=(100, 255, 100))
 
-    ball = Ball(x=width / 2, y=height / 2, radius=10, speed_x=200, color=(0, 255, 255))
+    ball = Ball(x=width / 2, y=height / 2, radius=10, speed_x=200, color=(0, 255, 255), trail_lifetime=1, trail_start_color=(255,255,255), 
+                trail_end_color=(0,0,0), trail_start_radius=5, trail_end_radius=0, trail_border_width=0, collision_acc=(0,100), collision_lifetime=1, 
+                collision_speed=100, collision_start_color=(255,255,255), collision_end_color=(0,0,0), collision_start_radius=2, collision_end_radius=4, 
+                collision_particle_count=20)
 
-    particle_system = ParticleSystem()
+    background_particle_system = ParticleSystem(lifetime=1, vel=(2,0), start_color=(255,255,255), 
+                                                end_color=(0,0,0), start_radius=2, end_radius=4, particle_count=1)
 
     while True:
         quit_program_if_correct_key_pressed_or_screen_exit()
 
         draw_background_game_loop()
 
-        particle_system.create_background_particles(lifetime=240, vel=(2,0), start_color=(255,255,255), 
-                                                    end_color=(0,0,0), start_radius=2, end_radius=4)
-
-        particle_system.create_trail_particles(pos = (ball.x+2.5, ball.y+2.5))
-
-        particle_system.update(3)
+        background_particle_system.create_background_particles()
 
         draw_scoreboard(paddle_1.score, paddle_2.score)
+
+        background_particle_system.update(1/fps)
 
         paddle_1.update(1 / fps)
         paddle_2.update(1 / fps)
 
-        ball.update(1 / fps, paddle_left=paddle_1, paddle_right=paddle_2, particle_system=particle_system)
+        ball.update(1 / fps, paddle_left=paddle_1, paddle_right=paddle_2)
 
         if paddle_1.score >= score_required_to_win:
             ended_game_loop(score_required_to_win, 1)
@@ -164,51 +165,51 @@ def quit_program_if_correct_key_pressed_or_screen_exit():
 
 
 class ParticleSystem:
-    def __init__(self):
-        self.all_particles = []
+    def __init__(self, *, lifetime, vel=(0,0), start_color, end_color, start_radius, end_radius=0, border_width=0, particle_count=0, acc=(0,0), speed=0):
+        self.particles = []
+        self.lifetime = lifetime
+        self.vel = vel
+        self.start_color = start_color
+        self.end_color = end_color
+        self.start_radius = start_radius
+        self.end_radius = end_radius
+        self.border_width  = border_width
+        self.particle_count = particle_count
+        self.acc = acc
+        self.speed = speed
 
     def update(self,dt):
-        for particle in self.all_particles:
-            if particle.lifetime <= 0: self.all_particles.remove(particle)
+        for particle in self.particles:
             particle.update(dt)
+        self.remove_dead_particles()
+
+    def remove_dead_particles(self):
+        alive_particles = []
+        for particle in self.particles:
+            if particle.is_alive():
+                alive_particles.append(particle)
+        self.particles = alive_particles
 
     def create_trail_particles(self, *, pos):
-        #Later on, we will create a menu system that you can add these particle settings to.
-        lifetime = 240
-
-        start_color = (255,255,255)
-        end_color = (0,0,0)
-        
-        start_radius = 5
-
-        self.all_particles.append(Particle(pos=pos, lifetime=lifetime, vel=(0,0), start_color=start_color, 
-                                           end_color=end_color, start_radius=start_radius))
+        self.particles.append(Particle(pos=pos, lifetime=self.lifetime, vel=(0,0), start_color=self.start_color, end_color=self.end_color, 
+                                           start_radius=self.start_radius, end_radius=self.end_radius, border_width=self.border_width))
 
     def create_collision_particles(self, *, pos):
-        lifetime = 240
-        speed = 1
-        
-        start_color = (255,255,255)
-        end_color = (0,0,0)
-        
-        start_radius = 2
-        end_radius = 4
+        #Later on, we will create a menu system that you can add these particle settings to.
 
-        particle_count = 20
-
-        for i in range(0,particle_count):
+        for i in range(0,self.particle_count):
             #finds a random point on a circle around the point of collision
             angle = random.random()*math.pi*2
-            randomvect = (math.cos(angle)*speed, math.sin(angle)*speed)
+            randomvect = (math.cos(angle)*self.speed, math.sin(angle)*self.speed)
 
-            self.all_particles.append(Particle(pos=pos, lifetime=lifetime, vel=randomvect, vel_change=(0,0.01), start_color=start_color, 
-                                               end_color=end_color, start_radius=start_radius, end_radius=end_radius))
+            self.particles.append(Particle(pos=pos, lifetime=self.lifetime, vel=randomvect, acc=self.acc, start_color=self.start_color, 
+                                               end_color=self.end_color, start_radius=self.start_radius, end_radius=self.end_radius, border_width=self.border_width))
 
-    def create_background_particles(self, *, lifetime, vel, start_color, end_color, start_radius, end_radius=0, border_width=0, particle_count=1):
-        for i in range(0,particle_count):
+    def create_background_particles(self):
+        for i in range(0,self.particle_count):
             randompos = (random.randint(0,width), random.randint(0,height))
-            self.all_particles.append(Particle(pos=randompos, lifetime=lifetime, vel=vel, start_color=start_color, end_color=end_color, 
-                                               start_radius=start_radius, end_radius=end_radius, border_width=border_width))
+            self.particles.append(Particle(pos=randompos, lifetime=self.lifetime, vel=self.vel, start_color=self.start_color, end_color=self.end_color, 
+                                               start_radius=self.start_radius, end_radius=self.end_radius, border_width=self.border_width))
 
 
 
@@ -318,12 +319,22 @@ class Paddle:
 
 
 class Ball:
-    def __init__(self, *, x, y, radius, speed_x, color=(255, 255, 255), border_width=0):
+    def __init__(self, *, x, y, radius, speed_x, color=(255, 255, 255), border_width=0, trail_lifetime, trail_start_color, 
+                 trail_end_color, trail_start_radius, trail_end_radius, trail_border_width=0, collision_acc, collision_lifetime, 
+                 collision_speed, collision_start_color, collision_end_color, collision_start_radius, collision_end_radius,
+                 collision_particle_count, collision_border_width=0):
         self.x = x
         self.y = y
 
         self.x_value_to_reset_to = x
         self.y_value_to_reset_to = y
+        
+        self.trail_particle_system = ParticleSystem(lifetime=trail_lifetime, start_color=trail_start_color, end_color=trail_end_color, 
+                                                    start_radius=trail_start_radius, end_radius=trail_end_radius, border_width=trail_border_width)
+        
+        self.collision_particle_system = ParticleSystem(acc=collision_acc, lifetime=collision_lifetime, speed=collision_speed, start_color=collision_start_color, 
+                                                        end_color=collision_end_color, start_radius=collision_start_radius, end_radius=collision_end_radius, 
+                                                        particle_count=collision_particle_count, border_width=collision_border_width)
 
         self.vy = random.uniform(speed_x / 3, speed_x * 2 / 3) * random.choice([-1, 1])
         self.vx = speed_x
@@ -333,12 +344,17 @@ class Ball:
         self.color = color
         self.border_width = border_width
 
-    def update(self, dt, *, paddle_left, paddle_right, particle_system):
-        self.account_for_paddle_collision(paddle_left, paddle_right, particle_system)
+    def update(self, dt, *, paddle_left, paddle_right):
+        self.account_for_paddle_collision(paddle_left, paddle_right)
 
-        self.account_for_vertical_screen_collision(particle_system)
+        self.account_for_vertical_screen_collision()
 
-        self.account_score_increases(paddle_left, paddle_right, particle_system)
+        self.account_score_increases(paddle_left, paddle_right)
+
+        self.trail_particle_system.create_trail_particles(pos = (self.x+2.5, self.y+2.5))
+        self.trail_particle_system.update(dt)
+
+        self.collision_particle_system.update(dt)
 
         self.move(dt)
         self.draw()
@@ -350,43 +366,37 @@ class Ball:
     def draw(self):
         pygame.draw.circle(screen, self.color, (self.x, self.y), self.radius, self.border_width)
 
-    def account_for_paddle_collision(self, paddle_left: Paddle, paddle_right: Paddle, particle_system: ParticleSystem) -> None:
-        """
-        Assumes the ball is relatively slow (i.e. won't clip through)
-        Also does not use i-frames (i.e. collision could occur multiple times for a collision)
-        Simply negates ball
-        """
-
+    def account_for_paddle_collision(self, paddle_left: Paddle, paddle_right: Paddle) -> None:
         if self.does_collide(paddle_left):
             self.left = paddle_left.right
             self.vx = abs(self.vx)
-            particle_system.create_collision_particles(pos=(self.x,self.y))
+            self.collision_particle_system.create_collision_particles(pos=(self.x,self.y))
         if self.does_collide(paddle_right):
             self.right = paddle_right.left
             self.vx = -abs(self.vx)
-            particle_system.create_collision_particles(pos=(self.x,self.y))
+            self.collision_particle_system.create_collision_particles(pos=(self.x,self.y))
 
         
 
         
 
-    def account_for_vertical_screen_collision(self, particle_system: ParticleSystem):
+    def account_for_vertical_screen_collision(self):
         if self.y_low < 0:
             self.y_low = 0
             self.vy = abs(self.vy)
-            particle_system.create_collision_particles(pos=(self.x,self.y))
+            self.collision_particle_system.create_collision_particles(pos=(self.x,self.y))
         if self.y_high > height:
             self.y_high = height
             self.vy = -abs(self.vy)
-            particle_system.create_collision_particles(pos=(self.x,self.y))
+            self.collision_particle_system.create_collision_particles(pos=(self.x,self.y))
 
-    def account_score_increases(self, left_paddle: Paddle, right_paddle: Paddle, particle_system: ParticleSystem):
+    def account_score_increases(self, left_paddle: Paddle, right_paddle: Paddle):
         if self.x_low < 0:
-            particle_system.create_collision_particles(pos=(self.x,self.y))
+            self.collision_particle_system.create_collision_particles(pos=(self.x,self.y))
             right_paddle.score += 1
             self.reset()
         if self.x_high > width:
-            particle_system.create_collision_particles(pos=(self.x,self.y))
+            self.collision_particle_system.create_collision_particles(pos=(self.x,self.y))
             left_paddle.score += 1
             self.reset()
 
@@ -415,8 +425,6 @@ class Ball:
                 (self.x_low, self.y_high),
                 (self.x_high, self.y_high),
                 (self.x_high, self.y_low)]
-
-    # Later on, we will learn the Pythonic way to do it, but for now we will use more Java-style ones.
 
     @property
     def x_low(self):
@@ -489,10 +497,10 @@ class Ball:
 
 
 class Particle:
-    def __init__(self, *, lifetime, pos, vel, vel_change=(0,0), start_color, end_color, start_radius, end_radius=0, border_width=0):
+    def __init__(self, *, lifetime, pos, vel, acc=(0,0), start_color, end_color, start_radius, end_radius=0, border_width=0):
         self.pos = pygame.Vector2(pos)
         self.vel = pygame.Vector2(vel)
-        self.vel_change = pygame.Vector2(vel_change)
+        self.acc = pygame.Vector2(acc)
 
         self.color = Color(start_color)
         self.color_change = (Color(end_color) - Color(start_color)) / lifetime
@@ -508,11 +516,11 @@ class Particle:
         self.shrink(dt)
         self.fade(dt)
         self.draw()
-        self.updatetime(dt)
-        self.updatevel(dt)
+        self.update_time(dt)
 
     def move(self, dt):
         self.pos += self.vel * dt
+        self.vel += self.acc * dt
 
     def draw(self):
         pygame.draw.circle(screen, self.color, self.pos, self.radius, self.border_width)
@@ -526,11 +534,12 @@ class Particle:
         self.color += self.color_change * dt
         self.color.keep_within_bounds()
 
-    def updatetime(self,dt):
+    def update_time(self,dt):
         self.lifetime -= dt
 
-    def updatevel(self,dt):
-        self.vel += self.vel_change * dt
+    def is_alive(self):
+        return self.lifetime > 0
+        
             
 
 
