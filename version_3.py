@@ -10,16 +10,16 @@ height = 500
 screen = pygame.display.set_mode((width, height))
 
 #Change filenames to whatever you are using
-ball_bounce_sound = pygame.mixer.Sound("ball_bounce.wav")
-score_point_sound = pygame.mixer.Sound("score_point.wav")
+ball_bounce_sound = pygame.mixer.Sound("CodeNation/ball_bounce.wav")
+score_point_sound = pygame.mixer.Sound("CodeNation/score_point.wav")
 score_point_sound.set_volume(0.1)
-game_start_sound = pygame.mixer.Sound("game_start.wav")
-countdown_sound = pygame.mixer.Sound("countdown.wav")
-game_over_sound = pygame.mixer.Sound("game_over.wav")
+game_start_sound = pygame.mixer.Sound("CodeNation/game_start.wav")
+countdown_sound = pygame.mixer.Sound("CodeNation/countdown.wav")
+game_over_sound = pygame.mixer.Sound("CodeNation/game_over.wav")
 
 pygame.mixer.music.load("Codenation/music.wav")
 
-play_music = True
+settings = {"play_music":True}
 
 background_color = (0, 0, 0)
 
@@ -57,7 +57,7 @@ def game_loop(score_required_to_win):
                                                 end_color=(0,0,0), start_radius=2, end_radius=4, particle_count=1)
     
     game_start_sound.play()
-    if (play_music): pygame.mixer.music.play()
+    if (settings["play_music"]): pygame.mixer.music.play()
     
 
     while True:
@@ -188,7 +188,9 @@ def quit_program_if_correct_key_pressed_or_screen_exit():
 def end_music_if_key_pressed():
     keys = pygame.key.get_pressed()
     if keys[pygame.K_m]:
-        pygame.mixer.music.stop()
+        settings["play_music"] = not settings["play_music"]
+        if (not settings["play_music"]): pygame.mixer.music.stop()
+        if (settings["play_music"]): pygame.mixer.music.play()
 
 
 class Paddle:
