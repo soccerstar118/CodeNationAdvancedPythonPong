@@ -1,8 +1,9 @@
 import pygame
 import random
+import math
 
 pygame.init()
-pygame.display.set_caption('Game')
+pygame.display.set_caption('Pong')
 
 width = 800
 height = 500
@@ -14,6 +15,42 @@ fps = 60
 clock = pygame.time.Clock()
 
 fonts = [pygame.font.SysFont("arial", font_size) for font_size in range(300)]
+
+
+# Note that Sound and Settings are placed abnormally high in the main file
+#    Once we start using multiple python files, we can make this cleaner using imports.
+
+
+# Create directory resources, then add the music/sound files inside to make it work.
+
+class Sound:
+    def __init__(self, ball_bounce: str, score_point: str, score_point_volume: float, game_start: str, countdown: str,
+                 game_over: str, music: str):
+        self.ball_bounce = pygame.mixer.Sound(ball_bounce)
+        self.score_point = pygame.mixer.Sound(score_point)
+
+        self.score_point.set_volume(score_point_volume)
+
+        self.game_start = pygame.mixer.Sound(game_start)
+        self.countdown = pygame.mixer.Sound(countdown)
+        self.game_over = pygame.mixer.Sound(game_over)
+
+        self.music = music
+
+
+sound = Sound(ball_bounce="resources/music.wav", score_point="resources/score_point.wav", score_point_volume=0.1,
+              game_start="resources/game_start.wav", countdown="resources/countdown.wav",
+              game_over="resources/game_over.wav", music="resources/music.wav")
+
+pygame.mixer.music.load(sound.music)
+
+
+class Settings:
+    def __init__(self, *, play_music=True):
+        self.play_music = play_music
+
+
+settings = Settings(play_music=True)
 
 '''
 ------------------------------------------------------------
@@ -32,12 +69,33 @@ def game_loop(score_required_to_win):
     paddle_2 = Paddle(x=width - 50, y=height / 2, paddle_width=5, paddle_height=60, speed=400, up_key=pygame.K_UP,
                       down_key=pygame.K_DOWN, color=(100, 255, 100))
 
-    ball = Ball(x=width / 2, y=height / 2, radius=10, speed_x=200, color=(0, 255, 255))
+    collision_particle_system = ParticleSystem(acc=(0, 100), lifetime=1, speed=100, start_color=(255, 255, 255),
+                                               end_color=(0, 0, 0), start_radius=2, end_radius=4, particle_count=20)
+
+    trail_particle_system = ParticleSystem(lifetime=1, start_color=(255, 255, 255), end_color=(0, 0, 0),
+                                           start_radius=5, end_radius=0, border_width=0)
+
+    ball = Ball(x=width / 2, y=height / 2, radius=10, speed_x=200, color=(0, 255, 255),
+                trail=trail_particle_system, collision=collision_particle_system)
+
+    background_particle_system = ParticleSystem(lifetime=2, vel=(2, 0), start_color=(255, 255, 255),
+                                                end_color=(0, 0, 0), start_radius=2, end_radius=4, particle_count=1)
+
+    sound.game_start.play()
+    if settings.play_music: pygame.mixer.music.play(loops=-1)
+
     while True:
+        end_music_if_key_pressed()
+
         quit_program_if_correct_key_pressed_or_screen_exit()
 
         draw_background_game_loop()
+
+        background_particle_system.create_background_particles()
+
         draw_scoreboard(paddle_1.score, paddle_2.score)
+
+        background_particle_system.update(1 / fps)
 
         paddle_1.update(1 / fps)
         paddle_2.update(1 / fps)
@@ -45,8 +103,10 @@ def game_loop(score_required_to_win):
         ball.update(1 / fps, paddle_left=paddle_1, paddle_right=paddle_2)
 
         if paddle_1.score >= score_required_to_win:
+            sound.game_over.play()
             ended_game_loop(score_required_to_win, 1)
         if paddle_2.score >= score_required_to_win:
+            sound.game_over.play()
             ended_game_loop(score_required_to_win, 2)
 
         pygame.display.update()
@@ -147,6 +207,17 @@ def quit_program_if_correct_key_pressed_or_screen_exit():
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
             pygame.quit()
             exit()
+
+
+def end_music_if_key_pressed():
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_m]:
+        settings.play_music = not settings.play_music
+
+        if settings.play_music:
+            pygame.mixer.music.play(loops=-1)
+        else:
+            pygame.mixer.music.stop()
 
 
 class Paddle:
@@ -254,12 +325,16 @@ class Paddle:
 
 
 class Ball:
-    def __init__(self, *, x, y, radius, speed_x, color=(255, 255, 255), border_width=0):
+    def __init__(self, *, x, y, radius, speed_x, color=(255, 255, 255), border_width=0, trail, collision):
         self.x = x
         self.y = y
 
         self.x_value_to_reset_to = x
         self.y_value_to_reset_to = y
+
+        self.trail_particle_system: ParticleSystem = trail
+
+        self.collision_particle_system: ParticleSystem = collision
 
         self.vy = random.uniform(speed_x / 3, speed_x * 2 / 3) * random.choice([-1, 1])
         self.vx = speed_x
@@ -276,6 +351,11 @@ class Ball:
 
         self.account_score_increases(paddle_left, paddle_right)
 
+        self.trail_particle_system.create_trail_particles(pos=(self.x + 2.5, self.y + 2.5))
+        self.trail_particle_system.update(dt)
+
+        self.collision_particle_system.update(dt)
+
         self.move(dt)
         self.draw()
 
@@ -287,32 +367,38 @@ class Ball:
         pygame.draw.circle(screen, self.color, (self.x, self.y), self.radius, self.border_width)
 
     def account_for_paddle_collision(self, paddle_left: Paddle, paddle_right: Paddle) -> None:
-        """
-        Assumes the ball is relatively slow (i.e. won't clip through)
-        Also does not use i-frames (i.e. collision could occur multiple times for a collision)
-        Simply negates ball
-        """
-
         if self.does_collide(paddle_left):
             self.left = paddle_left.right
             self.vx = abs(self.vx)
+            sound.ball_bounce.play()
+            self.collision_particle_system.create_collision_particles(pos=(self.x, self.y))
         if self.does_collide(paddle_right):
             self.right = paddle_right.left
             self.vx = -abs(self.vx)
+            sound.ball_bounce.play()
+            self.collision_particle_system.create_collision_particles(pos=(self.x, self.y))
 
     def account_for_vertical_screen_collision(self):
         if self.y_low < 0:
             self.y_low = 0
             self.vy = abs(self.vy)
+            sound.ball_bounce.play()
+            self.collision_particle_system.create_collision_particles(pos=(self.x, self.y))
         if self.y_high > height:
             self.y_high = height
             self.vy = -abs(self.vy)
+            sound.ball_bounce.play()
+            self.collision_particle_system.create_collision_particles(pos=(self.x, self.y))
 
     def account_score_increases(self, left_paddle: Paddle, right_paddle: Paddle):
         if self.x_low < 0:
+            self.collision_particle_system.create_collision_particles(pos=(self.x, self.y))
+            sound.score_point.play()
             right_paddle.score += 1
             self.reset()
         if self.x_high > width:
+            self.collision_particle_system.create_collision_particles(pos=(self.x, self.y))
+            sound.score_point.play()
             left_paddle.score += 1
             self.reset()
 
@@ -341,8 +427,6 @@ class Ball:
                 (self.x_low, self.y_high),
                 (self.x_high, self.y_high),
                 (self.x_high, self.y_low)]
-
-    # Later on, we will learn the Pythonic way to do it, but for now we will use more Java-style ones.
 
     @property
     def x_low(self):
@@ -409,30 +493,87 @@ class Ball:
         self.y_high = num
 
 
-class BackgroundParticleSystem:
-    ...
+class ParticleSystem:
+    def __init__(self, *, lifetime, vel=(0, 0), start_color, end_color, start_radius, end_radius=0, border_width=0,
+                 particle_count=0, acc=(0, 0), speed=0):
+        self.particles = []
+        self.lifetime = lifetime
+        self.vel = vel
+        self.start_color = start_color
+        self.end_color = end_color
+        self.start_radius = start_radius
+        self.end_radius = end_radius
+        self.border_width = border_width
+        self.particle_count = particle_count
+        self.acc = acc
+        self.speed = speed
+
+    def update(self, dt):
+        for particle in self.particles:
+            particle.update(dt)
+        self.remove_dead_particles()
+
+    def remove_dead_particles(self):
+        alive_particles = []
+        for particle in self.particles:
+            if particle.is_alive():
+                alive_particles.append(particle)
+        self.particles = alive_particles
+
+    def create_trail_particles(self, *, pos):
+        self.particles.append(Particle(pos=pos, lifetime=self.lifetime, vel=(0, 0), start_color=self.start_color,
+                                       end_color=self.end_color,
+                                       start_radius=self.start_radius, end_radius=self.end_radius,
+                                       border_width=self.border_width))
+
+    def create_collision_particles(self, *, pos):
+        # Later on, we will create a menu system that you can add these particle settings to.
+
+        for i in range(0, self.particle_count):
+            # finds a random point on a circle around the point of collision
+            angle = random.random() * math.pi * 2
+            random_vel = (math.cos(angle) * self.speed, math.sin(angle) * self.speed)
+
+            self.particles.append(
+                Particle(pos=pos, lifetime=self.lifetime, vel=random_vel, acc=self.acc, start_color=self.start_color,
+                         end_color=self.end_color, start_radius=self.start_radius, end_radius=self.end_radius,
+                         border_width=self.border_width))
+
+    def create_background_particles(self):
+        for i in range(0, self.particle_count):
+            random_pos = (random.randint(0, width), random.randint(0, height))
+            self.particles.append(
+                Particle(pos=random_pos, lifetime=self.lifetime, vel=self.vel, start_color=self.start_color,
+                         end_color=self.end_color,
+                         start_radius=self.start_radius, end_radius=self.end_radius, border_width=self.border_width))
+
 
 class Particle:
-    def __init__(self, *, lifetime, pos, vel, start_color, end_color, start_radius, end_radius=0, border_width=0):
+    def __init__(self, *, lifetime, pos, vel, acc=(0, 0), start_color, end_color, start_radius, end_radius=0,
+                 border_width=0):
         self.pos = pygame.Vector2(pos)
         self.vel = pygame.Vector2(vel)
+        self.acc = pygame.Vector2(acc)
 
         self.color = Color(start_color)
         self.color_change = (Color(end_color) - Color(start_color)) / lifetime
 
         self.radius = start_radius
-        self.radius_change = (start_radius - end_radius) / lifetime
+        self.radius_change = (end_radius - start_radius) / lifetime
 
         self.border_width = border_width
+        self.lifetime = lifetime
 
     def update(self, dt):
         self.move(dt)
         self.shrink(dt)
         self.fade(dt)
         self.draw()
+        self.update_time(dt)
 
     def move(self, dt):
         self.pos += self.vel * dt
+        self.vel += self.acc * dt
 
     def draw(self):
         pygame.draw.circle(screen, self.color, self.pos, self.radius, self.border_width)
@@ -446,17 +587,17 @@ class Particle:
         self.color += self.color_change * dt
         self.color.keep_within_bounds()
 
+    def update_time(self, dt):
+        self.lifetime -= dt
+
+    def is_alive(self):
+        return self.lifetime > 0
+
 
 class Color:
     """
     We can change this to be easier once we use inheritance.
     """
-    #the Particle class needs a method to check if alive (keep a variable equal to time alive, and decrease by dt upon update call) btw so add that
-    #the Particle class needs a method to check if alive (keep a variable equal to time alive, and decrease by dt upon update call) btw so add that
-    #the Particle class needs a method to check if alive (keep a variable equal to time alive, and decrease by dt upon update call) btw so add that
-    #the Particle class needs a method to check if alive (keep a variable equal to time alive, and decrease by dt upon update call) btw so add that
-    #the Particle class needs a method to check if alive (keep a variable equal to time alive, and decrease by dt upon update call) btw so add that
-    #the Particle class needs a method to check if alive (keep a variable equal to time alive, and decrease by dt upon update call) btw so add that
 
     def __init__(self, col):
         self.vec = pygame.Vector3(col)
@@ -482,22 +623,10 @@ class Color:
         return Color(self.vec * num)
 
     def __add__(self, col):
-        # Change to Color(col).vec to be better (not changing rn since dont have time to test it)
-        # Change to Color(col).vec to be better (not changing rn since dont have time to test it)
-        # Change to Color(col).vec to be better (not changing rn since dont have time to test it)
-        # Change to Color(col).vec to be better (not changing rn since dont have time to test it)
-        # Change to Color(col).vec to be better (not changing rn since dont have time to test it)
-        # Change to Color(col).vec to be better (not changing rn since dont have time to test it)
-        # Change to Color(col).vec to be better (not changing rn since dont have time to test it)
-        # Change to Color(col).vec to be better (not changing rn since dont have time to test it)
-        # Change to Color(col).vec to be better (not changing rn since dont have time to test it)
-        # Change to Color(col).vec to be better (not changing rn since dont have time to test it)
-        # Change to Color(col).vec to be better (not changing rn since dont have time to test it)
-        # Also for __sub__
-        return Color(self.vec + pygame.Vector3(col))
+        return Color(self.vec + Color(col).vec)
 
     def __sub__(self, col):
-        return Color(self.vec - pygame.Vector3(col))
+        return Color(self.vec - Color(col).vec)
 
     def __truediv__(self, num):
         return self * (1 / num)
@@ -535,8 +664,5 @@ class Color:
     def b(self, num):
         self.vec[2] = num
 
-# menu_loop(5)
-#
-# x = Color(5, 5, 5)
-# y = Color(4, 4, 4)
-# print(- y / 5)
+
+menu_loop(score_required_to_win=5)
