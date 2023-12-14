@@ -465,7 +465,7 @@ class ParticleSystem:
         self.particles = alive_particles
 
     def create_trail_particles(self, *, pos):
-        self.particles.append(Particle(pos=pos, lifetime=self.lifetime, vel=(0,0), start_color=self.start_color, end_color=self.end_color, 
+        self.particles.append(Particle(pos=pos, lifetime=self.lifetime, vel=self.vel, start_color=self.start_color, end_color=self.end_color, 
                                            start_radius=self.start_radius, end_radius=self.end_radius, border_width=self.border_width))
 
     def create_collision_particles(self, *, pos):
