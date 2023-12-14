@@ -257,8 +257,6 @@ class Paddle:
         pygame.draw.rect(screen, self.color, [self.x_low, self.y_low, self.width, self.height],
                          self.border_width)
 
-    # Later on, we will learn the Pythonic way to do it, but for now we will use more Java-style ones.
-
     @property
     def x_low(self):
         return self.x - self.width / 2
@@ -521,7 +519,7 @@ class ParticleSystem:
         self.particles = alive_particles
 
     def create_trail_particles(self, *, pos):
-        self.particles.append(Particle(pos=pos, lifetime=self.lifetime, vel=(0, 0), start_color=self.start_color,
+        self.particles.append(Particle(pos=pos, lifetime=self.lifetime, self.vel, start_color=self.start_color,
                                        end_color=self.end_color,
                                        start_radius=self.start_radius, end_radius=self.end_radius,
                                        border_width=self.border_width))
@@ -531,7 +529,7 @@ class ParticleSystem:
 
         for i in range(0, self.particle_count):
             # finds a random point on a circle around the point of collision
-            angle = random.random() * math.pi * 2
+            angle = random.random() * math.tau
             random_vel = (math.cos(angle) * self.speed, math.sin(angle) * self.speed)
 
             self.particles.append(
