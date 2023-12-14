@@ -46,11 +46,12 @@ pygame.mixer.music.load(sound.music)
 
 
 class Settings:
-    def __init__(self, *, play_music=True):
+    def __init__(self, *, play_music, music_toggle_key):
         self.play_music = play_music
+        self.music_toggle_key = music_toggle_key
 
 
-settings = Settings(play_music=True)
+settings = Settings(play_music=True, music_toggle_key=pygame.K_m)
 
 '''
 ------------------------------------------------------------
@@ -82,12 +83,13 @@ def game_loop(score_required_to_win):
                                                 end_color=(0, 0, 0), start_radius=2, end_radius=4, particle_count=1)
 
     sound.game_start.play()
-    if settings.play_music: pygame.mixer.music.play(loops=-1)
+    if settings.play_music:
+        pygame.mixer.music.play(loops=-1)
 
     while True:
-        end_music_if_key_pressed()
-
-        quit_program_if_correct_key_pressed_or_screen_exit()
+        for event in pygame.event.get():
+            quit_program_if_correct_key_pressed_or_screen_exit(event)
+            end_music_if_key_pressed(event)
 
         draw_background_game_loop()
 
@@ -137,7 +139,10 @@ def draw_background_game_loop():
 
 def ended_game_loop(score_required_to_win, num_player_won):
     while True:
-        quit_program_if_correct_key_pressed_or_screen_exit()
+        for event in pygame.event.get():
+            quit_program_if_correct_key_pressed_or_screen_exit(event)
+            end_music_if_key_pressed(event)
+
         screen.fill(background_color)
 
         draw_text_centered(f"Player {num_player_won} wins! ", width / 2, height * 1 / 4, "white", display_rect=True,
@@ -159,7 +164,10 @@ def ended_game_loop(score_required_to_win, num_player_won):
 
 def menu_loop(score_required_to_win):
     while True:
-        quit_program_if_correct_key_pressed_or_screen_exit()
+        for event in pygame.event.get():
+            quit_program_if_correct_key_pressed_or_screen_exit(event)
+            end_music_if_key_pressed(event)
+
         screen.fill(background_color)
 
         draw_text_centered("--- P O N G ---", width / 2, height / 2, "white", display_rect=True, rect_color="blue",
@@ -199,19 +207,17 @@ def draw_text_centered(message, x, y, color="white", *, display_rect=False, rect
     screen.blit(text_surface, text_rect)
 
 
-def quit_program_if_correct_key_pressed_or_screen_exit():
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            exit()
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-            pygame.quit()
-            exit()
+def quit_program_if_correct_key_pressed_or_screen_exit(event):
+    if event.type == pygame.QUIT:
+        pygame.quit()
+        exit()
+    if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+        pygame.quit()
+        exit()
 
 
-def end_music_if_key_pressed():
-    keys = pygame.key.get_pressed()
-    if keys[pygame.K_m]:
+def end_music_if_key_pressed(event):
+    if event.type == pygame.KEYDOWN and event.key == settings.music_toggle_key:
         settings.play_music = not settings.play_music
 
         if settings.play_music:
@@ -663,4 +669,4 @@ class Color:
         self.vec[2] = num
 
 
-menu_loop(score_required_to_win=5)
+menu_loop(score_required_to_win=1)
