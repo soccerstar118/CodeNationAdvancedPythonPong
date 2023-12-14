@@ -33,13 +33,18 @@ def game_loop(score_required_to_win):
     paddle_2 = Paddle(x=width - 50, y=height / 2, paddle_width=5, paddle_height=60, speed=400, up_key=pygame.K_UP,
                       down_key=pygame.K_DOWN, color=(100, 255, 100))
 
-    ball = Ball(x=width / 2, y=height / 2, radius=10, speed_x=200, color=(0, 255, 255), trail_lifetime=1, trail_start_color=(255,255,255), 
-                trail_end_color=(0,0,0), trail_start_radius=5, trail_end_radius=0, trail_border_width=0, collision_acc=(0,100), collision_lifetime=1, 
-                collision_speed=100, collision_start_color=(255,255,255), collision_end_color=(0,0,0), collision_start_radius=2, collision_end_radius=4, 
-                collision_particle_count=20)
+    collision_particle_system = ParticleSystem(acc=(0,100), lifetime=1, speed=100, start_color=(255,255,255), 
+                                               end_color=(0,0,0), start_radius=2, end_radius=4, particle_count=20)
+    
+    trail_particle_system = ParticleSystem(lifetime=1, start_color=(255,255,255), end_color=(0,0,0), 
+                                           start_radius=5, end_radius=0, border_width=0)
+
+    ball = Ball(x=width / 2, y=height / 2, radius=10, speed_x=200, color=(0, 255, 255), 
+                trail=trail_particle_system, collision=collision_particle_system)
 
     background_particle_system = ParticleSystem(lifetime=2, vel=(2,0), start_color=(255,255,255), 
                                                 end_color=(0,0,0), start_radius=2, end_radius=4, particle_count=1)
+    
 
     while True:
         quit_program_if_correct_key_pressed_or_screen_exit()
@@ -164,56 +169,6 @@ def quit_program_if_correct_key_pressed_or_screen_exit():
 
 
 
-class ParticleSystem:
-    def __init__(self, *, lifetime, vel=(0,0), start_color, end_color, start_radius, end_radius=0, border_width=0, particle_count=0, acc=(0,0), speed=0):
-        self.particles = []
-        self.lifetime = lifetime
-        self.vel = vel
-        self.start_color = start_color
-        self.end_color = end_color
-        self.start_radius = start_radius
-        self.end_radius = end_radius
-        self.border_width  = border_width
-        self.particle_count = particle_count
-        self.acc = acc
-        self.speed = speed
-
-    def update(self,dt):
-        for particle in self.particles:
-            particle.update(dt)
-        self.remove_dead_particles()
-
-    def remove_dead_particles(self):
-        alive_particles = []
-        for particle in self.particles:
-            if particle.is_alive():
-                alive_particles.append(particle)
-        self.particles = alive_particles
-
-    def create_trail_particles(self, *, pos):
-        self.particles.append(Particle(pos=pos, lifetime=self.lifetime, vel=(0,0), start_color=self.start_color, end_color=self.end_color, 
-                                           start_radius=self.start_radius, end_radius=self.end_radius, border_width=self.border_width))
-
-    def create_collision_particles(self, *, pos):
-        #Later on, we will create a menu system that you can add these particle settings to.
-
-        for i in range(0,self.particle_count):
-            #finds a random point on a circle around the point of collision
-            angle = random.random()*math.pi*2
-            randomvect = (math.cos(angle)*self.speed, math.sin(angle)*self.speed)
-
-            self.particles.append(Particle(pos=pos, lifetime=self.lifetime, vel=randomvect, acc=self.acc, start_color=self.start_color, 
-                                               end_color=self.end_color, start_radius=self.start_radius, end_radius=self.end_radius, border_width=self.border_width))
-
-    def create_background_particles(self):
-        for i in range(0,self.particle_count):
-            randompos = (random.randint(0,width), random.randint(0,height))
-            self.particles.append(Particle(pos=randompos, lifetime=self.lifetime, vel=self.vel, start_color=self.start_color, end_color=self.end_color, 
-                                               start_radius=self.start_radius, end_radius=self.end_radius, border_width=self.border_width))
-
-
-
-
 class Paddle:
     def __init__(self, *, x, y, paddle_width, paddle_height, speed, up_key, down_key, color=(255, 255, 255),
                  border_width=0):
@@ -319,22 +274,16 @@ class Paddle:
 
 
 class Ball:
-    def __init__(self, *, x, y, radius, speed_x, color=(255, 255, 255), border_width=0, trail_lifetime, trail_start_color, 
-                 trail_end_color, trail_start_radius, trail_end_radius, trail_border_width=0, collision_acc, collision_lifetime, 
-                 collision_speed, collision_start_color, collision_end_color, collision_start_radius, collision_end_radius,
-                 collision_particle_count, collision_border_width=0):
+    def __init__(self, *, x, y, radius, speed_x, color=(255, 255, 255), border_width=0, trail, collision):
         self.x = x
         self.y = y
 
         self.x_value_to_reset_to = x
         self.y_value_to_reset_to = y
         
-        self.trail_particle_system = ParticleSystem(lifetime=trail_lifetime, start_color=trail_start_color, end_color=trail_end_color, 
-                                                    start_radius=trail_start_radius, end_radius=trail_end_radius, border_width=trail_border_width)
+        self.trail_particle_system : ParticleSystem = trail
         
-        self.collision_particle_system = ParticleSystem(acc=collision_acc, lifetime=collision_lifetime, speed=collision_speed, start_color=collision_start_color, 
-                                                        end_color=collision_end_color, start_radius=collision_start_radius, end_radius=collision_end_radius, 
-                                                        particle_count=collision_particle_count, border_width=collision_border_width)
+        self.collision_particle_system : ParticleSystem = collision
 
         self.vy = random.uniform(speed_x / 3, speed_x * 2 / 3) * random.choice([-1, 1])
         self.vx = speed_x
@@ -492,7 +441,52 @@ class Ball:
 
 
 
+class ParticleSystem:
+    def __init__(self, *, lifetime, vel=(0,0), start_color, end_color, start_radius, end_radius=0, border_width=0, particle_count=0, acc=(0,0), speed=0):
+        self.particles = []
+        self.lifetime = lifetime
+        self.vel = vel
+        self.start_color = start_color
+        self.end_color = end_color
+        self.start_radius = start_radius
+        self.end_radius = end_radius
+        self.border_width  = border_width
+        self.particle_count = particle_count
+        self.acc = acc
+        self.speed = speed
 
+    def update(self,dt):
+        for particle in self.particles:
+            particle.update(dt)
+        self.remove_dead_particles()
+
+    def remove_dead_particles(self):
+        alive_particles = []
+        for particle in self.particles:
+            if particle.is_alive():
+                alive_particles.append(particle)
+        self.particles = alive_particles
+
+    def create_trail_particles(self, *, pos):
+        self.particles.append(Particle(pos=pos, lifetime=self.lifetime, vel=(0,0), start_color=self.start_color, end_color=self.end_color, 
+                                           start_radius=self.start_radius, end_radius=self.end_radius, border_width=self.border_width))
+
+    def create_collision_particles(self, *, pos):
+        #Later on, we will create a menu system that you can add these particle settings to.
+
+        for i in range(0,self.particle_count):
+            #finds a random point on a circle around the point of collision
+            angle = random.random()*math.pi*2
+            randomvect = (math.cos(angle)*self.speed, math.sin(angle)*self.speed)
+
+            self.particles.append(Particle(pos=pos, lifetime=self.lifetime, vel=randomvect, acc=self.acc, start_color=self.start_color, 
+                                               end_color=self.end_color, start_radius=self.start_radius, end_radius=self.end_radius, border_width=self.border_width))
+
+    def create_background_particles(self):
+        for i in range(0,self.particle_count):
+            randompos = (random.randint(0,width), random.randint(0,height))
+            self.particles.append(Particle(pos=randompos, lifetime=self.lifetime, vel=self.vel, start_color=self.start_color, end_color=self.end_color, 
+                                               start_radius=self.start_radius, end_radius=self.end_radius, border_width=self.border_width))
 
 
 
