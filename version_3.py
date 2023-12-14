@@ -38,7 +38,7 @@ class Sound:
         self.music = music
 
 
-sound = Sound(ball_bounce="resources/music.wav", score_point="resources/score_point.wav", score_point_volume=0.1,
+sound = Sound(ball_bounce="resources/ball_bounce.wav", score_point="resources/score_point.wav", score_point_volume=0.1,
               game_start="resources/game_start.wav", countdown="resources/countdown.wav",
               game_over="resources/game_over.wav", music="resources/music.wav")
 
