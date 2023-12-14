@@ -205,8 +205,6 @@ class Paddle:
         pygame.draw.rect(screen, self.color, [self.x_low, self.y_low, self.width, self.height],
                          self.border_width)
 
-    # Later on, we will learn the Pythonic way to do it, but for now we will use more Java-style ones.
-
     @property
     def x_low(self):
         return self.x - self.width / 2
@@ -540,12 +538,6 @@ class Color:
     """
     We can change this to be easier once we use inheritance.
     """
-    #the Particle class needs a method to check if alive (keep a variable equal to time alive, and decrease by dt upon update call) btw so add that
-    #the Particle class needs a method to check if alive (keep a variable equal to time alive, and decrease by dt upon update call) btw so add that
-    #the Particle class needs a method to check if alive (keep a variable equal to time alive, and decrease by dt upon update call) btw so add that
-    #the Particle class needs a method to check if alive (keep a variable equal to time alive, and decrease by dt upon update call) btw so add that
-    #the Particle class needs a method to check if alive (keep a variable equal to time alive, and decrease by dt upon update call) btw so add that
-    #the Particle class needs a method to check if alive (keep a variable equal to time alive, and decrease by dt upon update call) btw so add that
 
     def __init__(self, col):
         self.vec = pygame.Vector3(col)
@@ -571,22 +563,10 @@ class Color:
         return Color(self.vec * num)
 
     def __add__(self, col):
-        # Change to Color(col).vec to be better (not changing rn since dont have time to test it)
-        # Change to Color(col).vec to be better (not changing rn since dont have time to test it)
-        # Change to Color(col).vec to be better (not changing rn since dont have time to test it)
-        # Change to Color(col).vec to be better (not changing rn since dont have time to test it)
-        # Change to Color(col).vec to be better (not changing rn since dont have time to test it)
-        # Change to Color(col).vec to be better (not changing rn since dont have time to test it)
-        # Change to Color(col).vec to be better (not changing rn since dont have time to test it)
-        # Change to Color(col).vec to be better (not changing rn since dont have time to test it)
-        # Change to Color(col).vec to be better (not changing rn since dont have time to test it)
-        # Change to Color(col).vec to be better (not changing rn since dont have time to test it)
-        # Change to Color(col).vec to be better (not changing rn since dont have time to test it)
-        # Also for __sub__
-        return Color(self.vec + pygame.Vector3(col))
+        return Color(self.vec + Color(col).vec)
 
     def __sub__(self, col):
-        return Color(self.vec - pygame.Vector3(col))
+        return Color(self.vec - Color(col).vec)
 
     def __truediv__(self, num):
         return self * (1 / num)
@@ -625,7 +605,3 @@ class Color:
         self.vec[2] = num
 
 menu_loop(5)
-#
-# x = Color(5, 5, 5)
-# y = Color(4, 4, 4)
-# print(- y / 5)
