@@ -256,9 +256,7 @@ class Paddle:
     def draw(self):
         pygame.draw.rect(screen, self.color, [self.x_low, self.y_low, self.width, self.height],
                          self.border_width)
-
-    # Later on, we will learn the Pythonic way to do it, but for now we will use more Java-style ones.
-
+        
     @property
     def x_low(self):
         return self.x - self.width / 2
