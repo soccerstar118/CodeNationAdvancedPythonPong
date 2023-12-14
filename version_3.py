@@ -57,7 +57,7 @@ def game_loop(score_required_to_win):
                                                 end_color=(0,0,0), start_radius=2, end_radius=4, particle_count=1)
     
     game_start_sound.play()
-    if (settings["play_music"]): pygame.mixer.music.play()
+    if (settings["play_music"]): pygame.mixer.music.play(loops=-1)
     
 
     while True:
@@ -190,7 +190,7 @@ def end_music_if_key_pressed():
     if keys[pygame.K_m]:
         settings["play_music"] = not settings["play_music"]
         if (not settings["play_music"]): pygame.mixer.music.stop()
-        if (settings["play_music"]): pygame.mixer.music.play()
+        if (settings["play_music"]): pygame.mixer.music.play(loops=-1)
 
 
 class Paddle:
