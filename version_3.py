@@ -10,12 +10,12 @@ height = 500
 screen = pygame.display.set_mode((width, height))
 
 #Change filenames to whatever you are using
-ball_bounce_sound = pygame.mixer.Sound("CodeNation/ball_bounce.wav")
-score_point_sound = pygame.mixer.Sound("CodeNation/score_point.wav")
+ball_bounce_sound = pygame.mixer.Sound("ball_bounce.wav")
+score_point_sound = pygame.mixer.Sound("score_point.wav")
 score_point_sound.set_volume(0.1)
-game_start_sound = pygame.mixer.Sound("CodeNation/game_start.wav")
-countdown_sound = pygame.mixer.Sound("CodeNation/countdown.wav")
-game_over_sound = pygame.mixer.Sound("CodeNation/game_over.wav")
+game_start_sound = pygame.mixer.Sound("game_start.wav")
+countdown_sound = pygame.mixer.Sound("countdown.wav")
+game_over_sound = pygame.mixer.Sound("game_over.wav")
 
 pygame.mixer.music.load("Codenation/music.wav")
 
