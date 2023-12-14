@@ -38,7 +38,7 @@ def game_loop(score_required_to_win):
                 collision_speed=100, collision_start_color=(255,255,255), collision_end_color=(0,0,0), collision_start_radius=2, collision_end_radius=4, 
                 collision_particle_count=20)
 
-    background_particle_system = ParticleSystem(lifetime=1, vel=(2,0), start_color=(255,255,255), 
+    background_particle_system = ParticleSystem(lifetime=2, vel=(2,0), start_color=(255,255,255), 
                                                 end_color=(0,0,0), start_radius=2, end_radius=4, particle_count=1)
 
     while True:
