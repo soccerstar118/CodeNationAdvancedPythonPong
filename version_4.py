@@ -107,9 +107,11 @@ def game_loop(score_required_to_win):
         ball.update(1 / fps, paddle_left=paddle_1, paddle_right=paddle_2)
 
         if paddle_1.score >= score_required_to_win:
+            pygame.mixer.stop()
             sound.game_over.play()
             ended_game_loop(score_required_to_win, 1)
         if paddle_2.score >= score_required_to_win:
+            pygame.mixer.stop()
             sound.game_over.play()
             ended_game_loop(score_required_to_win, 2)
 
