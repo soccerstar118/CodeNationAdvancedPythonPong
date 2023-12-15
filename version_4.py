@@ -38,9 +38,9 @@ class Sound:
         self.music = music
 
 
-sound = Sound(ball_bounce="Codenation/ball_bounce.wav", score_point="Codenation/score_point.wav", score_point_volume=0.1,
-              game_start="Codenation/game_start.wav", countdown="Codenation/countdown.wav",
-              game_over="Codenation/game_over.wav", music="Codenation/music.wav")
+sound = Sound(ball_bounce="resources/ball_bounce.wav", score_point="resources/score_point.wav", score_point_volume=0.1,
+              game_start="resources/game_start.wav", countdown="resources/countdown.wav",
+              game_over="resources/game_over.wav", music="resources/music.wav")
 
 pygame.mixer.music.load(sound.music)
 
