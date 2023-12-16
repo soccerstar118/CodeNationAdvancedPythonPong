@@ -66,10 +66,10 @@ Later on, we will move to a class based menu system. For now we opt for function
 
 
 def game_loop(score_required_to_win):
-    paddle_1 = Paddle(x=50, y=height / 2, acc=400, de_acc=800, paddle_width=5, paddle_height=60, max_speed=400,
-                      up_key=pygame.K_w, down_key=pygame.K_s, color=(255, 100, 100))
-    paddle_2 = Paddle(x=width - 50, y=height / 2, de_acc=800, acc=400, paddle_width=5, paddle_height=60, max_speed=400,
-                      up_key=pygame.K_UP, down_key=pygame.K_DOWN, color=(100, 255, 100))
+    paddle_1 = Paddle(x=50, y=height / 2, paddle_width=5, paddle_height=60, speed=500, up_key=pygame.K_w,
+                      down_key=pygame.K_s, color=(255, 100, 100))
+    paddle_2 = Paddle(x=width - 50, y=height / 2, paddle_width=5, paddle_height=60, speed=500, up_key=pygame.K_UP,
+                      down_key=pygame.K_DOWN, color=(100, 255, 100))
 
     collision_particle_system = ParticleSystem(acc=(0, 100), lifetime=1, speed=100, start_color=(255, 255, 255),
                                                end_color=(0, 0, 0), start_radius=2, end_radius=4, particle_count=20)
@@ -81,7 +81,7 @@ def game_loop(score_required_to_win):
                 trail=trail_particle_system, collision=collision_particle_system)
 
     background_particle_system = ParticleSystem(lifetime=2, vel=(2, 0), start_color=(255, 255, 255),
-                                                end_color=(0, 0, 0), start_radius=2, end_radius=4, particle_count=1)
+                                                end_color=(0, 0, 0), start_radius=2, end_radius=4, particle_count=60)
 
     sound.game_start.play()
     if settings.play_music:
@@ -95,7 +95,7 @@ def game_loop(score_required_to_win):
 
         draw_background_game_loop()
 
-        background_particle_system.create_background_particles()
+        background_particle_system.create_background_particles(1 / fps)
 
         draw_scoreboard(paddle_1.score, paddle_2.score)
 
@@ -571,6 +571,11 @@ class ParticleSystem:
         self.particles = alive_particles
 
     def create_trail_particles(self, *, pos):
+        #make framerate independent
+        #make framerate independent
+        #make framerate independent
+        #make framerate independent
+        #make framerate independent
         self.particles.append(Particle(pos=pos, lifetime=self.lifetime, vel=self.vel, start_color=self.start_color,
                                        end_color=self.end_color,
                                        start_radius=self.start_radius, end_radius=self.end_radius,
@@ -589,13 +594,17 @@ class ParticleSystem:
                          end_color=self.end_color, start_radius=self.start_radius, end_radius=self.end_radius,
                          border_width=self.border_width))
 
-    def create_background_particles(self):
-        for i in range(0, self.particle_count):
-            random_pos = (random.randint(0, width), random.randint(0, height))
-            self.particles.append(
+    def create_background_particles(self, dt):
+        i = self.particle_count * dt
+        while i > 0:
+            if i >= 1 or (i < 1 and random.random() <= i):
+                random_pos = (random.randint(0, width), random.randint(0, height))
+                self.particles.append(
                 Particle(pos=random_pos, lifetime=self.lifetime, vel=self.vel, start_color=self.start_color,
                          end_color=self.end_color,
                          start_radius=self.start_radius, end_radius=self.end_radius, border_width=self.border_width))
+            i -= 1
+
 
 
 class Particle:
