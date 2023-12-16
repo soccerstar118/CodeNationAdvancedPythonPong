@@ -256,9 +256,8 @@ def sign(x):
 
 
 class Paddle:
-    def __init__(self, *, x, y, paddle_width, paddle_height, max_speed, acc: float, de_acc: float, up_key, down_key,
-                 color=(255, 255, 255),
-                 border_width=0):
+    def __init__(self, *, x, y, paddle_width, paddle_height, speed, up_key, down_key,
+                 color=(255, 255, 255), border_width=0):
         self.score = 0
 
         self.x = x
@@ -266,10 +265,10 @@ class Paddle:
         self.width = paddle_width
         self.height = paddle_height
 
-        self.max_speed = max_speed
+        # Acceleration set, such that the paddle reaches [speed] speed after 1 second
+        self.acc = speed * 2.60815358903 
+
         self.y_vel = 0
-        self.acc = acc
-        self.de_acc = de_acc
 
         self.up_key = up_key
         self.down_key = down_key
@@ -280,34 +279,21 @@ class Paddle:
     def update(self, dt):
         self.move_on_input(dt)
         self.draw()
-
+    
     def move_on_input(self, dt):
         keys = pygame.key.get_pressed()
 
-        if (keys[self.up_key] and keys[self.down_key]) or not (keys[self.up_key] or keys[self.down_key]):
-            if abs(self.y_vel) <= max(self.acc, self.de_acc) * dt * 2:
-                self.y_vel = 0
-            elif self.y_vel > 0:
-                self.y_vel -= self.de_acc * dt
-            else:
-                self.y_vel += self.de_acc * dt
-        elif keys[self.down_key]:
-            if self.y_vel >= 0:
-                self.y_vel += self.acc * dt
-            else:
-                self.y_vel += self.de_acc * dt
-        elif keys[self.up_key]:
-            if self.y_vel <= 0:
-                self.y_vel -= self.acc * dt
-            else:
-                self.y_vel -= self.de_acc * dt
-        else:
-            raise Exception("Impossible code branch reached. ")
+        acc = 0
+        if keys[self.up_key]:
+            acc -= self.acc
+        if keys[self.down_key]:
+            acc += self.acc
 
-        self.y_vel = max(self.y_vel, -self.max_speed)
-        self.y_vel = min(self.y_vel, self.max_speed)
+        self.y_vel += acc * dt
+        self.y_vel *= 0.08 ** dt
+
         self.y += self.y_vel * dt
-
+        
     def draw(self):
         pygame.draw.rect(screen, self.color, [self.x_low, self.y_low, self.width, self.height],
                          self.border_width)
