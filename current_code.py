@@ -46,12 +46,13 @@ pygame.mixer.music.load(sound.music)
 
 
 class Settings:
-    def __init__(self, *, play_music, music_toggle_key):
+    def __init__(self, *, play_music, music_toggle_key, pause_key):
         self.play_music = play_music
         self.music_toggle_key = music_toggle_key
+        self.pause_key = pause_key
 
 
-settings = Settings(play_music=True, music_toggle_key=pygame.K_m)
+settings = Settings(play_music=False, music_toggle_key=pygame.K_m, pause_key=pygame.K_SPACE)
 
 '''
 ------------------------------------------------------------
@@ -65,10 +66,10 @@ Later on, we will move to a class based menu system. For now we opt for function
 
 
 def game_loop(score_required_to_win):
-    paddle_1 = Paddle(x=50, y=height / 2, paddle_width=5, paddle_height=60, speed=400, up_key=pygame.K_w,
-                      down_key=pygame.K_s, color=(255, 100, 100))
-    paddle_2 = Paddle(x=width - 50, y=height / 2, paddle_width=5, paddle_height=60, speed=400, up_key=pygame.K_UP,
-                      down_key=pygame.K_DOWN, color=(100, 255, 100))
+    paddle_1 = Paddle(x=50, y=height / 2, acc=400, de_acc=800, paddle_width=5, paddle_height=60, max_speed=400,
+                      up_key=pygame.K_w, down_key=pygame.K_s, color=(255, 100, 100))
+    paddle_2 = Paddle(x=width - 50, y=height / 2, de_acc=800, acc=400, paddle_width=5, paddle_height=60, max_speed=400,
+                      up_key=pygame.K_UP, down_key=pygame.K_DOWN, color=(100, 255, 100))
 
     collision_particle_system = ParticleSystem(acc=(0, 100), lifetime=1, speed=100, start_color=(255, 255, 255),
                                                end_color=(0, 0, 0), start_radius=2, end_radius=4, particle_count=20)
@@ -90,6 +91,7 @@ def game_loop(score_required_to_win):
         for event in pygame.event.get():
             quit_program_if_correct_key_pressed_or_screen_exit(event)
             end_music_if_key_pressed(event)
+            pause_game_if_key_pressed(event)
 
         draw_background_game_loop()
 
@@ -105,9 +107,11 @@ def game_loop(score_required_to_win):
         ball.update(1 / fps, paddle_left=paddle_1, paddle_right=paddle_2)
 
         if paddle_1.score >= score_required_to_win:
+            pygame.mixer.stop()
             sound.game_over.play()
             ended_game_loop(score_required_to_win, 1)
         if paddle_2.score >= score_required_to_win:
+            pygame.mixer.stop()
             sound.game_over.play()
             ended_game_loop(score_required_to_win, 2)
 
@@ -226,8 +230,34 @@ def end_music_if_key_pressed(event):
             pygame.mixer.music.stop()
 
 
+def pause_game_if_key_pressed(event):
+    if event.type == pygame.KEYDOWN and event.key == settings.pause_key:
+        draw_text_centered("Game Paused", width / 2, height / 2, "white", display_rect=False, font_size=45)
+        pygame.display.update()
+        game_paused_loop()
+
+
+def game_paused_loop():
+    while True:
+        for event in pygame.event.get():
+            quit_program_if_correct_key_pressed_or_screen_exit(event)
+            end_music_if_key_pressed(event)
+            if event.type == pygame.KEYDOWN and event.key == settings.pause_key:
+                return
+
+
+def sign(x):
+    if x > 0:
+        return 1
+    elif x < 0:
+        return -1
+    else:
+        return 0
+
+
 class Paddle:
-    def __init__(self, *, x, y, paddle_width, paddle_height, speed, up_key, down_key, color=(255, 255, 255),
+    def __init__(self, *, x, y, paddle_width, paddle_height, max_speed, acc: float, de_acc: float, up_key, down_key,
+                 color=(255, 255, 255),
                  border_width=0):
         self.score = 0
 
@@ -236,7 +266,10 @@ class Paddle:
         self.width = paddle_width
         self.height = paddle_height
 
-        self.speed = abs(speed)
+        self.max_speed = max_speed
+        self.y_vel = 0
+        self.acc = acc
+        self.de_acc = de_acc
 
         self.up_key = up_key
         self.down_key = down_key
@@ -251,13 +284,29 @@ class Paddle:
     def move_on_input(self, dt):
         keys = pygame.key.get_pressed()
 
-        incr_amount = 0
-        if keys[self.up_key]:
-            incr_amount -= self.speed
-        if keys[self.down_key]:
-            incr_amount += self.speed
+        if (keys[self.up_key] and keys[self.down_key]) or not (keys[self.up_key] or keys[self.down_key]):
+            if abs(self.y_vel) <= max(self.acc, self.de_acc) * dt * 2:
+                self.y_vel = 0
+            elif self.y_vel > 0:
+                self.y_vel -= self.de_acc * dt
+            else:
+                self.y_vel += self.de_acc * dt
+        elif keys[self.down_key]:
+            if self.y_vel >= 0:
+                self.y_vel += self.acc * dt
+            else:
+                self.y_vel += self.de_acc * dt
+        elif keys[self.up_key]:
+            if self.y_vel <= 0:
+                self.y_vel -= self.acc * dt
+            else:
+                self.y_vel -= self.de_acc * dt
+        else:
+            raise Exception("Impossible code branch reached. ")
 
-        self.y += incr_amount * dt
+        self.y_vel = max(self.y_vel, -self.max_speed)
+        self.y_vel = min(self.y_vel, self.max_speed)
+        self.y += self.y_vel * dt
 
     def draw(self):
         pygame.draw.rect(screen, self.color, [self.x_low, self.y_low, self.width, self.height],
@@ -329,7 +378,7 @@ class Paddle:
 
 
 class Ball:
-    def __init__(self, *, x, y, radius, speed_x, color=(255, 255, 255), border_width=0, trail, collision):
+    def __init__(self, *, x, y, radius, speed_x, color=(255, 255, 255), border_width=0, trail, collision, speedup=1.1):
         self.x = x
         self.y = y
 
@@ -348,6 +397,10 @@ class Ball:
         self.color = color
         self.border_width = border_width
 
+        self.speedup = speedup
+
+        self.time_elapsed = 0
+
     def update(self, dt, *, paddle_left, paddle_right):
         self.account_for_paddle_collision(paddle_left, paddle_right)
 
@@ -360,7 +413,9 @@ class Ball:
 
         self.collision_particle_system.update(dt)
 
-        self.move(dt)
+        if self.time_elapsed >= 2.5: self.move(dt)
+        self.time_elapsed += dt
+
         self.draw()
 
     def move(self, dt):
@@ -371,14 +426,16 @@ class Ball:
         pygame.draw.circle(screen, self.color, (self.x, self.y), self.radius, self.border_width)
 
     def account_for_paddle_collision(self, paddle_left: Paddle, paddle_right: Paddle) -> None:
+        paddle_collided = None
+
         if self.does_collide(paddle_left):
-            self.left = paddle_left.right
             self.vx = abs(self.vx)
-            sound.ball_bounce.play()
-            self.collision_particle_system.create_collision_particles(pos=(self.x, self.y))
+            paddle_collided = paddle_left
         if self.does_collide(paddle_right):
-            self.right = paddle_right.left
             self.vx = -abs(self.vx)
+            paddle_collided = paddle_right
+
+        if paddle_collided is not None:
             sound.ball_bounce.play()
             self.collision_particle_system.create_collision_particles(pos=(self.x, self.y))
 
@@ -416,6 +473,9 @@ class Ball:
 
         self.x = self.x_value_to_reset_to
         self.y = self.y_value_to_reset_to
+
+        self.time_elapsed = 0
+        sound.countdown.play()
 
     def does_collide(self, paddle):
         for point in self.get_points():
@@ -669,4 +729,4 @@ class Color:
         self.vec[2] = num
 
 
-menu_loop(score_required_to_win=1)
+menu_loop(score_required_to_win=2)
