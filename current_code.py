@@ -88,6 +88,7 @@ def game_loop(score_required_to_win):
         pygame.mixer.music.play(loops=-1)
 
     while True:
+        
         for event in pygame.event.get():
             quit_program_if_correct_key_pressed_or_screen_exit(event)
             end_music_if_key_pressed(event)
@@ -405,8 +406,8 @@ class Ball:
         self.draw()
 
     def move(self, dt):
-        self.x += self.vx * dt
-        self.y += self.vy * dt
+        self.x += self.vx * dt * (1 + self.time_elapsed / 60)
+        self.y += self.vy * dt * (1 + self.time_elapsed / 60)
 
     def draw(self):
         pygame.draw.circle(screen, self.color, (self.x, self.y), self.radius, self.border_width)
@@ -417,9 +418,32 @@ class Ball:
         if self.does_collide(paddle_left):
             self.vx = abs(self.vx)
             paddle_collided = paddle_left
+
+            paddle_dist = (self.y - paddle_collided.y) * 1/60
+            total_speed = abs(self.vx) + abs(self.vy)
+
+            x_ratio = math.cos(paddle_dist)
+            y_ratio = math.sin(paddle_dist)
+
+            self.vx = abs(x_ratio / (abs(x_ratio) + abs(y_ratio)) * total_speed)
+            self.vy = (y_ratio / (abs(x_ratio) + abs(y_ratio)) * total_speed)
+
+            self.vy += paddle_collided.y_vel * 0.5
+
         if self.does_collide(paddle_right):
             self.vx = -abs(self.vx)
             paddle_collided = paddle_right
+
+            paddle_dist = (self.y - paddle_collided.y) * 1/60
+            total_speed = abs(self.vx) + abs(self.vy)
+
+            x_ratio = math.cos(paddle_dist)
+            y_ratio = math.sin(paddle_dist)
+
+            self.vx = -abs(x_ratio / (abs(x_ratio) + abs(y_ratio)) * total_speed)
+            self.vy = (y_ratio / (abs(x_ratio) + abs(y_ratio)) * total_speed)
+
+            self.vy += paddle_collided.y_vel * 0.5
 
         if paddle_collided is not None:
             sound.ball_bounce.play()
