@@ -478,6 +478,7 @@ class Ball:
         Flips ball direction, resets position of ball.
         """
 
+        self.vx = self.speed_x * sign(self.vx)
         self.vx = -self.vx
         self.vy = random.uniform(self.speed_x / 3, self.speed_x * 2 / 3) * random.choice([-1, 1])
 
